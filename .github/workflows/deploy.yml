@@ -41,17 +41,16 @@ jobs:
     - name: Determine Image Tag and ECR Repository
       id: determine-tag
       run: |
-        # Extract labels from pull request
         LABELS_JSON="${{ toJson(github.event.pull_request.labels) }}"
-        
-        # Debug: Print raw JSON
         echo "Raw JSON Labels: $LABELS_JSON"
         
         if [ "$LABELS_JSON" != "null" ] && [ -n "$LABELS_JSON" ]; then
           LABELS=$(echo "$LABELS_JSON" | jq -r '.[] | .name // empty')
           echo "Extracted Labels: $LABELS"
+          
           IMAGE_TAG="dev"
           ECR_REPO="dev"
+          
           if echo "$LABELS" | grep -q 'production'; then
             IMAGE_TAG="latest"
             ECR_REPO="prod"
@@ -64,6 +63,7 @@ jobs:
         else
           echo "No valid labels found or JSON is null, defaulting to 'dev'"
         fi
+        
         echo "IMAGE_TAG=$IMAGE_TAG"
         echo "ECR_REPO=$ECR_REPO"
         
@@ -81,22 +81,32 @@ jobs:
       run: |
         echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
         echo "ECR_REPO=${{ env.ECR_REPO }}"
+        
         if [ -z "${{ env.IMAGE_TAG }}" ]; then
           echo "IMAGE_TAG is empty. Please check the label extraction step."
           exit 1
         fi
+        
         docker tag hello-world-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:${{ env.IMAGE_TAG }}
         echo "Image tagged as ${{ env.IMAGE_TAG }}"
+     shell: /usr/bin/bash -e {0}
+     env:
+       AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+       AWS_REGION: ${{ secrets.AWS_REGION }}
+       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Push Docker image to ECR
       id: push-image
       run: |
         echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
         echo "ECR_REPO=${{ env.ECR_REPO }}"
+        
         if [ -z "${{ env.IMAGE_TAG }}" ]; then
           echo "IMAGE_TAG is empty. Please check the label extraction step."
           exit 1
         fi
+        
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:${{ env.IMAGE_TAG }}
 
     - name: Deploy to S3

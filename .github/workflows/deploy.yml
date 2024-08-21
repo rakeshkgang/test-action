@@ -30,7 +30,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
       with:
         registry-type: private
-        aws-region: ${{ secrets.AWS_REGION }} # Ensure this is provided
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Build Docker image
       id: build-image
@@ -41,7 +41,10 @@ jobs:
     - name: Determine Image Tag
       id: determine-tag
       run: |
-        LABEL=$(echo "${{ github.event.pull_request.labels }}" | grep -o '"name": "[^"]*"' | grep -o '[^"]*$')
+        # Extract labels from pull request
+        LABEL=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | select(.name == "production") | .name')
+        
+        # Set IMAGE_TAG based on label
         if [ "$LABEL" == "production" ]; then
           IMAGE_TAG="latest"
         else

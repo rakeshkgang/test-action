@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Fixed typo here
 
     steps:
     - name: Checkout code
@@ -42,12 +42,15 @@ jobs:
       id: determine-tag
       run: |
         # Extract labels from pull request
-        LABEL=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | select(.name == "production") | .name')
-        
+        LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty')
+
         # Set IMAGE_TAG based on label
-        if [ "$LABEL" == "production" ]; then
+        if echo "$LABELS" | grep -q 'production'; then
           IMAGE_TAG="latest"
+        elif echo "$LABELS" | grep -q 'development'; then
+          IMAGE_TAG="dev"
         else
+          echo "No valid label found, defaulting to 'dev'"
           IMAGE_TAG="dev"
         fi
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV

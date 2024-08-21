@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest  # Fixed typo here
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -41,8 +41,14 @@ jobs:
     - name: Determine Image Tag
       id: determine-tag
       run: |
+        # Debug: Print the raw JSON data for labels
+        echo "Raw JSON Labels: ${{ toJson(github.event.pull_request.labels) }}"
+
         # Extract labels from pull request
         LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty')
+
+        # Debug: Print extracted labels
+        echo "Extracted Labels: $LABELS"
 
         # Set IMAGE_TAG based on label
         if echo "$LABELS" | grep -q 'production'; then

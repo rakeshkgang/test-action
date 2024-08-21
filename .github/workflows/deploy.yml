@@ -44,6 +44,10 @@ jobs:
         # Extract labels from pull request
         LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty')
 
+        # Debug: Print raw labels
+        echo "Raw JSON Labels: ${{ toJson(github.event.pull_request.labels) }}"
+        echo "Extracted Labels: $LABELS"
+
         # Set IMAGE_TAG and ECR_REPO based on label
         if echo "$LABELS" | grep -q 'production'; then
           IMAGE_TAG="latest"

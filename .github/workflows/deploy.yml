@@ -45,13 +45,10 @@ jobs:
     - name: Determine Image Tag
       id: determine-tag
       run: |
-        # Extract labels from pull request
         LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty' || echo "null")
 
-        # Debug: Print extracted labels
         echo "Extracted Labels: $LABELS"
         
-        # Set IMAGE_TAG based on label
         if echo "$LABELS" | grep -q 'production'; then
           IMAGE_TAG="latest"
         elif echo "$LABELS" | grep -q 'development'; then

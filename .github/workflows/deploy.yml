@@ -42,17 +42,23 @@ jobs:
       id: determine-tag
       run: |
         # Extract labels from pull request
-        LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty')
+        LABELS_JSON="${{ toJson(github.event.pull_request.labels) }}"
+        
+        # Debug: Print raw JSON
+        echo "Raw JSON Labels: $LABELS_JSON"
 
-        # Debug: Print raw labels
-        echo "Raw JSON Labels: $LABELS"
+        # Extract label names, ensuring non-empty and valid JSON
+        if [ "$LABELS_JSON" != "null" ] && [ -n "$LABELS_JSON" ]; then
+          LABELS=$(echo "$LABELS_JSON" | jq -r '.[] | .name // empty')
+          
+          # Debug: Print extracted labels
+          echo "Extracted Labels: $LABELS"
 
-        # Initialize IMAGE_TAG and ECR_REPO with default values
-        IMAGE_TAG="dev"
-        ECR_REPO="dev"
+          # Initialize IMAGE_TAG and ECR_REPO with default values
+          IMAGE_TAG="dev"
+          ECR_REPO="dev"
 
-        # Check if LABELS is not empty and set IMAGE_TAG and ECR_REPO based on label
-        if [ -n "$LABELS" ] && [ "$LABELS" != "null" ]; then
+          # Set IMAGE_TAG and ECR_REPO based on label
           if echo "$LABELS" | grep -q 'production'; then
             IMAGE_TAG="latest"
             ECR_REPO="prod"
@@ -63,9 +69,13 @@ jobs:
             echo "No valid label found, defaulting to 'dev'"
           fi
         else
-          echo "No labels found or labels are null, defaulting to 'dev'"
+          echo "No valid labels found or JSON is null, defaulting to 'dev'"
         fi
 
+        # Output the selected values
+        echo "IMAGE_TAG=$IMAGE_TAG"
+        echo "ECR_REPO=$ECR_REPO"
+        
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "ECR_REPO=$ECR_REPO" >> $GITHUB_ENV
       shell: /usr/bin/bash -e {0}
@@ -90,9 +100,6 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
         mkdir -p ./deploy
-        # Assuming the deploy directory should be populated or created by the previous steps
-        # Populate or create files in ./deploy/ if necessary
-        # For example, cp -r /path/to/source ./deploy/ or any other steps
         aws s3 cp ./deploy/ s3://${{ secrets.S3_BUCKET_NAME }}/ --recursive
         echo "Application deployed to S3 bucket"
       shell: /usr/bin/bash -e {0}

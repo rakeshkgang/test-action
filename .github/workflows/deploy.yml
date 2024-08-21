@@ -1,22 +1,15 @@
-name: CI/CD Workflow
+name: Build and Deploy
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, labeled, synchronize]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -29,14 +22,7 @@ jobs:
     - name: Run tests
       run: npm test
 
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up AWS CLI
+    - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -46,9 +32,14 @@ jobs:
     - name: Determine ECR Repository
       id: determine-ecr
       run: |
+        # Debug output to verify labels
+        echo "PR Labels: ${{ github.event.pull_request.labels }}"
+
+        # Extract the label name from the pull request labels
         LABEL=$(echo "${{ github.event.pull_request.labels }}" | grep -o '"name": "[^"]*"' | grep -o '[^"]*$')
         echo "Label: $LABEL"
         
+        # Set the ECR repository based on the label
         if [ "$LABEL" == "production" ]; then
           echo "Using Production ECR"
           echo "ECR_REPO=${{ secrets.PROD_ECR_REPOSITORY }}" >> $GITHUB_ENV
@@ -56,33 +47,28 @@ jobs:
           echo "Using Development ECR"
           echo "ECR_REPO=${{ secrets.DEV_ECR_REPOSITORY }}" >> $GITHUB_ENV
         fi
-
-    - name: Login to Amazon ECR
-      id: ecr-login
-      run: |
-        echo "Logging in to ECR repository"
-        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REPO }}
+      env:
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Build Docker image
-      id: build-image
-      run: |
-        docker build -t hello-world-app .
-        echo "Image built with tag hello-world-app"
+      run: docker build -t my-app .
 
-    - name: Tag Docker image
-      id: tag-image
+    - name: Log in to ECR
       run: |
-        docker tag hello-world-app:latest ${{ env.ECR_REPO }}:latest
-        echo "Image tagged as latest"
+        if [ "${{ env.ECR_REPO }}" == "${{ secrets.PROD_ECR_REPOSITORY }}" ]; then
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.PROD_ECR_REPOSITORY }}
+        else
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.DEV_ECR_REPOSITORY }}
+        fi
 
     - name: Push Docker image to ECR
-      id: push-image
       run: |
-        docker push ${{ env.ECR_REPO }}:latest
-        echo "Image pushed to ${{ env.ECR_REPO }}:latest"
+        docker tag my-app:latest ${{ env.ECR_REPO }}/my-app:latest
+        docker push ${{ env.ECR_REPO }}/my-app:latest
 
     - name: Deploy to S3
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
-        aws s3 cp ./deploy/ s3://${{ secrets.S3_BUCKET_NAME }}/ --recursive
-        echo "Application deployed to S3 bucket"
+        aws s3 cp my-app.zip s3://my-bucket/

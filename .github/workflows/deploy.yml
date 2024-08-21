@@ -18,9 +18,19 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
     - name: Login to Amazon ECR
       id: ecr-login
       uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registry-type: private
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Build Docker image
       id: build-image
@@ -28,13 +38,26 @@ jobs:
         docker build -t hello-world-app .
         echo "Image built with tag hello-world-app"
 
+    - name: Print Pull Request Data
+      run: |
+        echo "Raw JSON Pull Request Data: ${{ toJson(github.event.pull_request) }}"
+
     - name: Determine Image Tag
       id: determine-tag
       run: |
-        LABEL=$(echo "${{ github.event.pull_request.labels }}" | grep -o '"name": "[^"]*"' | grep -o '[^"]*$')
-        if [ "$LABEL" == "production" ]; then
+        # Extract labels from pull request
+        LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty' || echo "null")
+
+        # Debug: Print extracted labels
+        echo "Extracted Labels: $LABELS"
+        
+        # Set IMAGE_TAG based on label
+        if echo "$LABELS" | grep -q 'production'; then
           IMAGE_TAG="latest"
+        elif echo "$LABELS" | grep -q 'development'; then
+          IMAGE_TAG="dev"
         else
+          echo "No valid label found, defaulting to 'dev'"
           IMAGE_TAG="dev"
         fi
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV

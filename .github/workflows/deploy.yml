@@ -38,18 +38,19 @@ jobs:
         docker build -t hello-world-app .
         echo "Image built with tag hello-world-app"
 
+    - name: Print Pull Request Data
+      run: |
+        echo "Raw JSON Pull Request Data: ${{ toJson(github.event.pull_request) }}"
+
     - name: Determine Image Tag
       id: determine-tag
       run: |
-        # Debug: Print the raw JSON data for labels
-        echo "Raw JSON Labels: ${{ toJson(github.event.pull_request.labels) }}"
-
         # Extract labels from pull request
-        LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty')
+        LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[] | .name // empty' || echo "null")
 
         # Debug: Print extracted labels
         echo "Extracted Labels: $LABELS"
-
+        
         # Set IMAGE_TAG based on label
         if echo "$LABELS" | grep -q 'production'; then
           IMAGE_TAG="latest"

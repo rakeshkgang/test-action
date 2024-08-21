@@ -32,14 +32,10 @@ jobs:
     - name: Determine ECR Repository
       id: determine-ecr
       run: |
-        # Debug output to verify labels
         echo "PR Labels: ${{ github.event.pull_request.labels }}"
-
-        # Extract the label name from the pull request labels
         LABEL=$(echo "${{ github.event.pull_request.labels }}" | grep -o '"name": "[^"]*"' | grep -o '[^"]*$')
         echo "Label: $LABEL"
         
-        # Set the ECR repository based on the label
         if [ "$LABEL" == "production" ]; then
           echo "Using Production ECR"
           echo "ECR_REPO=${{ secrets.PROD_ECR_REPOSITORY }}" >> $GITHUB_ENV

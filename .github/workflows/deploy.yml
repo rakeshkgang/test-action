@@ -88,12 +88,32 @@ jobs:
     - name: Tag Docker image
       id: tag-image
       run: |
+        # Debug: Print the environment variables
+        echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
+        echo "ECR_REPO=${{ env.ECR_REPO }}"
+
+        # Ensure IMAGE_TAG is not empty
+        if [ -z "${{ env.IMAGE_TAG }}" ]; then
+          echo "IMAGE_TAG is empty. Please check the label extraction step."
+          exit 1
+        fi
+
         docker tag hello-world-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:${{ env.IMAGE_TAG }}
         echo "Image tagged as ${{ env.IMAGE_TAG }}"
 
     - name: Push Docker image to ECR
       id: push-image
       run: |
+        # Debug: Print the environment variables
+        echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
+        echo "ECR_REPO=${{ env.ECR_REPO }}"
+
+        # Ensure IMAGE_TAG is not empty
+        if [ -z "${{ env.IMAGE_TAG }}" ]; then
+          echo "IMAGE_TAG is empty. Please check the label extraction step."
+          exit 1
+        fi
+
         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:${{ env.IMAGE_TAG }}
 
     - name: Deploy to S3

@@ -47,7 +47,7 @@ jobs:
         # Debug: Print raw JSON
         echo "Raw JSON Labels: $LABELS_JSON"
 
-        # Extract label names, ensuring non-empty and valid JSON
+        # Extract label names
         if [ "$LABELS_JSON" != "null" ] && [ -n "$LABELS_JSON" ]; then
           LABELS=$(echo "$LABELS_JSON" | jq -r '.[] | .name // empty')
           

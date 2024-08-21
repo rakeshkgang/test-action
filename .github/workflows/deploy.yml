@@ -18,7 +18,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    
+    - name: Login to Amazon ECR
+      id: ecr-login
+      run: |
+        if [ "${{ github.event.pull_request.labels[0].name }}" == "production" ]; then
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          ECR_REPO=${{ secrets.PROD_ECR_REPOSITORY }}
+        else
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          ECR_REPO=${{ secrets.DEV_ECR_REPOSITORY }}
+        fi
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REPO
+
     - name: Build Docker image
       id: build-image
       run: |
@@ -28,19 +41,14 @@ jobs:
     - name: Tag Docker image
       id: tag-image
       run: |
-        IMAGE_TAG=$(if [ "${{ github.event.pull_request.labels[0].name }}" = "production" ]; then echo "latest"; else echo "dev"; fi)
-        docker tag hello-world-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:$IMAGE_TAG
-        echo "Image tagged as $IMAGE_TAG"
-    
-    - name: Login to Amazon ECR
-      id: ecr-login
-      uses: aws-actions/amazon-ecr-login@v2
-      
+        docker tag hello-world-app:latest $ECR_REPO:latest
+        echo "Image tagged as latest"
+
     - name: Push Docker image to ECR
       id: push-image
       run: |
-        IMAGE_TAG=$(if [ "${{ github.event.pull_request.labels[0].name }}" = "production" ]; then echo "latest"; else echo "dev"; fi)
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:$IMAGE_TAG
+        docker push $ECR_REPO:latest
+        echo "Image pushed to $ECR_REPO:latest"
 
     - name: Deploy to S3
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'

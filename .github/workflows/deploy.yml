@@ -18,10 +18,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Login to Amazon ECR
-      id: ecr-login
-      uses: aws-actions/amazon-ecr-login@v2
-
+    
     - name: Build Docker image
       id: build-image
       run: |
@@ -34,7 +31,11 @@ jobs:
         IMAGE_TAG=$(if [ "${{ github.event.pull_request.labels[0].name }}" = "production" ]; then echo "latest"; else echo "dev"; fi)
         docker tag hello-world-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:$IMAGE_TAG
         echo "Image tagged as $IMAGE_TAG"
-
+    
+    - name: Login to Amazon ECR
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v2
+      
     - name: Push Docker image to ECR
       id: push-image
       run: |

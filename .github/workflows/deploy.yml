@@ -21,11 +21,13 @@ jobs:
     - name: Login to Amazon ECR
       id: ecr-login
       run: |
-        if [ "${{ github.event.pull_request.labels[0].name }}" == "production" ]; then
+        if [[ "${{ github.event.pull_request.labels[0].name }}" == "production" ]]; then
+          echo "Logging in to Production ECR"
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           ECR_REPO=${{ secrets.PROD_ECR_REPOSITORY }}
         else
+          echo "Logging in to Development ECR"
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
           ECR_REPO=${{ secrets.DEV_ECR_REPOSITORY }}

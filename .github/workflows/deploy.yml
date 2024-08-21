@@ -50,7 +50,7 @@ jobs:
         # Extract label names
         if [ "$LABELS_JSON" != "null" ] && [ -n "$LABELS_JSON" ]; then
           LABELS=$(echo "$LABELS_JSON" | jq -r '.[] | .name // empty')
-          
+
           # Debug: Print extracted labels
           echo "Extracted Labels: $LABELS"
 
@@ -92,9 +92,9 @@ jobs:
         echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
         echo "ECR_REPO=${{ env.ECR_REPO }}"
 
-        # Ensure IMAGE_TAG is not empty
-        if [ -z "${{ env.IMAGE_TAG }}" ]; then
-          echo "IMAGE_TAG is empty. Please check the label extraction step."
+        # Ensure IMAGE_TAG and ECR_REPO are not empty
+        if [ -z "${{ env.IMAGE_TAG }}" ] || [ -z "${{ env.ECR_REPO }}" ]; then
+          echo "IMAGE_TAG or ECR_REPO is empty. Please check the label extraction step."
           exit 1
         fi
 
@@ -108,9 +108,9 @@ jobs:
         echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
         echo "ECR_REPO=${{ env.ECR_REPO }}"
 
-        # Ensure IMAGE_TAG is not empty
-        if [ -z "${{ env.IMAGE_TAG }}" ]; then
-          echo "IMAGE_TAG is empty. Please check the label extraction step."
+        # Ensure IMAGE_TAG and ECR_REPO are not empty
+        if [ -z "${{ env.IMAGE_TAG }}" ] || [ -z "${{ env.ECR_REPO }}" ]; then
+          echo "IMAGE_TAG or ECR_REPO is empty. Please check the label extraction step."
           exit 1
         fi
 

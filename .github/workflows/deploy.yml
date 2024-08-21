@@ -41,14 +41,8 @@ jobs:
     - name: Determine Image Tag and Repository
       id: determine-tag
       run: |
-        # Debug: Print raw JSON data for labels
-        echo "Raw JSON Labels: ${{ toJson(github.event.pull_request.labels) }}"
-
         # Extract labels from pull request
         LABELS=$(echo "${{ toJson(github.event.pull_request.labels) }}" | jq -r '.[]?.name // empty')
-
-        # Debug: Print extracted labels
-        echo "Extracted Labels: $LABELS"
 
         # Initialize variables
         IMAGE_TAG="dev"
@@ -80,13 +74,13 @@ jobs:
     - name: Tag Docker image
       id: tag-image
       run: |
-        docker tag hello-world-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:${{ env.IMAGE_TAG }}
+        docker tag hello-world-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
         echo "Image tagged as ${{ env.IMAGE_TAG }}"
 
     - name: Push Docker image to ECR
       id: push-image
       run: |
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/hello-world-app:${{ env.IMAGE_TAG }}
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
       env:
         AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         AWS_REGION: ${{ secrets.AWS_REGION }}

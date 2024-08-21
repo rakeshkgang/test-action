@@ -61,6 +61,9 @@ jobs:
         elif echo "$LABELS" | grep -q 'development'; then
           IMAGE_TAG="dev"
           ECR_REPO="dev"
+        elif echo "$LABELS" | grep -q 'test-workflow'; then
+          IMAGE_TAG="test"
+          ECR_REPO="test-workflow"
         else
           echo "No valid label found, defaulting to 'dev'"
         fi

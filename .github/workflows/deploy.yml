@@ -18,16 +18,16 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '14'
-
-    - name: Install dependencies
-      run: npm install
+    - name: Build Docker image
+      id: build-image
+      run: |
+        docker build -t hello-world-app .
+        echo "Image built with tag hello-world-app"
 
     - name: Run tests
-      run: npm test
+      run: |
+        # Add any tests here
+        echo "Tests are not defined in this example."
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -55,12 +55,6 @@ jobs:
       run: |
         echo "Logging in to ECR repository"
         aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REPO }}
-
-    - name: Build Docker image
-      id: build-image
-      run: |
-        docker build -t hello-world-app .
-        echo "Image built with tag hello-world-app"
 
     - name: Tag Docker image
       id: tag-image

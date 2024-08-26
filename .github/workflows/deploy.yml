@@ -70,3 +70,8 @@ jobs:
       - name: Sync files to S3
         run: |
           aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --delete
+      - name: Call Generate Docs Workflow
+        uses: docs-repo/.github/workflows/generate-ecr-s3-docs.yml@main
+        with:
+          ecr_file: './ecr-docs.md'  # Path to the ECR documentation file in the main repo
+          s3_file: './s3-docs.md' 
